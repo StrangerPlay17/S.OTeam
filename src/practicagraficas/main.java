@@ -868,11 +868,18 @@ public class main extends javax.swing.JFrame {
                     if (contador == 8) {
                         //tablaBloqueados.removeRow(0);
                         color_bloqueado--; // Regresa una barra a su color de "listos
+                        /*
                         if(g.colorProceso(0,Color.GREEN)){ // Compara si el ejecutado esta bloqueado
                                g.editarColorProceso(0, Color.red);
                                tiemposProcesos();
-                        }
-                        list_bloqueados.remove(0);
+                        }*/
+                        if(cola_listos.size() < 4){
+                            cola_listos.offer(list_bloqueados.remove(0));
+                        }else{
+                            procesos.add(list_bloqueados.remove(0));
+                            System.out.println("entro");
+                            }
+                        
 
                                if(tablaBloqueados.getRowCount()>=0){//Evitar fallas por las filas
                                   for(int i=tablaBloqueados.getRowCount()-1;i>=0;i--)
@@ -956,8 +963,10 @@ public class main extends javax.swing.JFrame {
                 // Verificar si ejecucion.getTime() es igual a contador_global
                 if(quantum_time < 1){ //Si el Quantum llega a 0
                    cola_listos.offer(ejecucion); //Regresa el proceso a la cola 
+                   ejecucion = cola_listos.remove();
                    quantum_time = Quantum; //Reincia el quantum
-                   recorrerProcesos(); //Recorre de nuevo los procesos actuales  
+                   actualizarTiempos();
+                   //recorrerProcesos(); //Recorre de nuevo los procesos actuales  
                    //ejecutado = true; // Marcar como ejecutado
                    //timer = 0;
                 }
@@ -1021,9 +1030,33 @@ public class main extends javax.swing.JFrame {
                     }
                 }*/
                 //Actualizar el Panel del proceso en ejecucion
-                if (!id_cpu.getText().equals("0")){
+                if(tablaBloqueados.getRowCount()>0 && cola_listos.size() == 0){
+                        System.out.println("Bloqueado en tabla");
+                        int rowCount = tablaBloqueados.getRowCount();
+                        // Recorrer cada fila de la tabla
+                        for (int i = 0; i < rowCount; i++) {
+                            // Obtener los valores de la fila actual
+                            int id = (int) tablaBloqueados.getValueAt(i, 0);
+                            int tiempoProceso = (int) tablaBloqueados.getValueAt(i, 1);
+
+                            // Crear un nuevo objeto Process con los valores de la fila
+                            Process newProcess = new Process(id);
+                            newProcess.setTime(tiempoProceso);
+
+                            // Agregar el proceso a la lista de procesos
+                            boolean repetido = false;
+                             for (Process cola : cola_listos) {
+                                if (newProcess.getProcessId() == cola.getProcessId()) {
+                                    // Eliminar el proceso en ejecución de la lista de terminados
+                                     repetido = true;
+                                     break;
+                             }
+                             if(repetido){procesos.add(newProcess);}
+                        }}
+                }
+                
                 id_cpu.setText(String.valueOf(ejecucion.getProcessId()));
-                ocupado_cpu.setText(String.valueOf(ejecucion.getTimeRun()));
+                ocupado_cpu.setText(String.valueOf(ejecucion.getTimeRun()+1));
                 tiempo_cpu.setText(String.valueOf(ejecucion.getTime()));
                 tiempo_llegada.setText(String.valueOf(ejecucion.getTimeArrival()));
                 tiempo_respuesta.setText(String.valueOf(ejecucion.getResponseTime()));
@@ -1038,7 +1071,7 @@ public class main extends javax.swing.JFrame {
                 quantum_label.setText(String.valueOf(quantum_time));
                 ejecutado = false;
                 contador.setText(String.valueOf(contador_global));
-                }
+                
             }
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -1047,6 +1080,25 @@ public class main extends javax.swing.JFrame {
     // Inicia el hilo
     tiemposThread.start();
 }
+  private void actualizarTiempos() { 
+     tiempos_procesos.clear(); //Limpia los tiempos de los procesos anteriores 
+      tiempos_procesos.add(0); //Omite el primer tiempo en la grafica
+      tiempos_procesos.add(ejecucion.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+            //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+            //System.out.println("cola");
+      if(cola_listos.size() != 0){
+      for (Process proceso : cola_listos) {
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesos.add(proceso.getTime());
+     }}
+     //System.out.println("nuevos");
+     //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+     if(procesos.size() != 0){
+        for (Process proceso : procesos){
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesos.add(proceso.getTime());
+     }}
+  }
     private void recorrerProcesos() { //Recorre la cola de procesos
     //Asigna el proceso en estado "Ejecucion" 
      if(cola_listos.size() != 0){ //Si hay procesos en cola 
@@ -1126,8 +1178,9 @@ public class main extends javax.swing.JFrame {
        
          if (ejecucion != null) {
              if(ejecucion.getTime() != 1){
-                cola_listos.offer(ejecucion);
                 list_bloqueados.add(ejecucion);//Lista de bloquedos
+                //ejecucion = cola_listos.remove();
+                actualizarTiempos();
                 if(tablaBloqueados.getRowCount()>=0){//Evitar fallas por las filas
                                           for(int i=tablaBloqueados.getRowCount()-1;i>=0;i--)
                                               tablaBloqueados.removeRow(i);//Vaciara todas las filas de tabla para eliminar datos repetidos
