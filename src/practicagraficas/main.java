@@ -8,6 +8,7 @@ import java.util.List;
 import javax.swing.*;
 import java.util.Queue;
 import java.util.LinkedList;
+import java.util.Iterator;
 
 public class main extends javax.swing.JFrame {
     int [] conjunto = {5,7,4,3,7,9,2,1,6,8}; 
@@ -820,6 +821,9 @@ public class main extends javax.swing.JFrame {
     
     private void nuevo() { //Interrupcion de nuevo proceso
        // Simulación: Agregar un nuevo proceso a la lista de procesos nuevos o a la cola
+        if(!tiempos && !ejecutando && !bloqueados){
+          continuar();
+        }
         Process nuevoProceso = new Process(ID);
         ID++;
         if(cola_listos.size() < 4){ //Si cabe el proceso en la cola de listos 
@@ -842,8 +846,9 @@ public class main extends javax.swing.JFrame {
             int llegada = ejecucion.getTimeArrival();
             ejecucion.setReturnTime(finalizacion-llegada); //Añade el tiempo de retorno 
             int retorno = ejecucion.getReturnTime();
-            ejecucion.setWaitTime(wait_timer); //Tiempo de espera 
+            ejecucion.setWaitTime(wait_timer); //Tiempo de espera
             terminados.add(ejecucion); // Mueve el proceso en ejecucion a la lista de procesos termminados.
+            
             //tiempo_espera.setText(String.valueOf(ejecucion.getWaitTime()));
             ejecucion.setTime(1); // Limpiar el tiempo del proceso en ejecución.
             terminado = true; //Bandera de terminado
@@ -864,6 +869,9 @@ public class main extends javax.swing.JFrame {
                 while (true) {
                     System.out.println(Thread.currentThread().getName() + ": " + contador);
                     contador++;
+                    if(ejecucion.getProcessId() ==  list_bloqueados.get(0).getProcessId()){ //Si el proceso en ejecucion se encuentra bloqueado
+                                pausar(); //Detiene el tiempo de ejecucion
+                    }
                     //tablaBloqueados.setValueAt(contador, fila, 1); // Actualiza el contador del proceso en la tabla
                     if (contador == 8) {
                         //tablaBloqueados.removeRow(0);
@@ -891,6 +899,10 @@ public class main extends javax.swing.JFrame {
                                         tablaBloqueados.addRow(new Object[]{bloqueado.getProcessId(),bloqueado.getTime()});  
                                         //recorrerProcesos();
                                   }             
+                           if(!tiempos && !ejecutando && !bloqueados){ //Reanuda el proceso en ejecucion al no estar bloqueado
+                                   continuar();
+                           }
+                        recorrerProcesos(); //Recorre los procesos al añadir de nuevo el bloqueado
                         break; // Reinicia el contador cuando llega a 8
                     }
                     try {
@@ -978,8 +990,12 @@ public class main extends javax.swing.JFrame {
                     int retorno = ejecucion.getReturnTime();
                     ejecucion.setWaitTime(retorno-ejecucion.getTimeRun());
                     //tiempo_espera.setText(String.valueOf(ejecucion.getWaitTime()));
+                    if(ejecucion.getTime()!=1){ //Al estar el "if" al iniciar un proceso nuevo el "ultimo" en la tabla se elimina
                     terminados.add(ejecucion); // Sino, añade el nuevo terminado
-                    
+                    }
+ 
+                        
+                    ejecucion.setTime(1);
                     
                     System.out.println("Terminado noral");
                     System.out.println(ejecucion.getProcessId());
@@ -993,22 +1009,30 @@ public class main extends javax.swing.JFrame {
                 } else if (ejecucion.getTime() != ejecucion.getTimeRun()) { 
                     ejecutado = false; // Reiniciar el indicador si el tiempo ha cambiado
                 }
-                  for (Process terminado : terminados) {
-                        if (ejecucion.getProcessId() == terminado.getProcessId()) {
-                            // Eliminar el proceso en ejecución de la lista de terminados
-                            terminados.remove(terminado);
-                            tiempo_cpu.setText(String.valueOf(0));
-                            id_cpu.setText(String.valueOf(0));
-                            ocupado_cpu.setText(String.valueOf(0));
-                            //Tiempo llegada
-                            tiempo_llegada.setText(String.valueOf(0));
-                            //Tiempo respuesta
-                            tiempo_respuesta.setText(String.valueOf(0));
-                            //System.out.println(ejecucion.getTime());
-                            //recorrerProcesos();
-                            ejecutado = true;
-                            break;
-                  }}
+                if(ejecucion.getTime() == 1){
+                    for (Process terminado : terminados) {
+                            if (ejecucion.getProcessId() == terminado.getProcessId()) {
+                                // Eliminar el proceso en ejecución de la lista de terminados
+                                terminados.remove(terminado);
+                                tiempo_cpu.setText(String.valueOf(0));
+                                id_cpu.setText(String.valueOf(0));
+                                ocupado_cpu.setText(String.valueOf(0));
+                                //Tiempo llegada
+                                tiempo_llegada.setText(String.valueOf(0));
+                                //Tiempo respuesta
+                                tiempo_respuesta.setText(String.valueOf(0));
+                                //System.out.println(ejecucion.getTime());
+                                //recorrerProcesos();
+                                ejecutado = true;
+                                //recorrerProcesos();
+                                //actualizarGrafica();
+                                pausar(); //Detiene el tiempo de ejecucion
+                                
+                                
+                                break;
+                      }}
+                }
+                  
                  /*
                 if (!id_cpu.getText().equals("0")) { // Se mantiene a la espera de procesos nuevos si no hay
                     //timer = 0;
@@ -1178,24 +1202,42 @@ public class main extends javax.swing.JFrame {
        
          if (ejecucion != null) {
              if(ejecucion.getTime() != 1){
-                list_bloqueados.add(ejecucion);//Lista de bloquedos
-                //ejecucion = cola_listos.remove();
-                actualizarTiempos();
-                if(tablaBloqueados.getRowCount()>=0){//Evitar fallas por las filas
-                                          for(int i=tablaBloqueados.getRowCount()-1;i>=0;i--)
-                                              tablaBloqueados.removeRow(i);//Vaciara todas las filas de tabla para eliminar datos repetidos
-                                            }
-                for(Process bloqueado: list_bloqueados){//Insertara los bloquedos a la tabla
-                              //System.out.println(terminado.getProcessId());
-                              tablaBloqueados.addRow(new Object[]{bloqueado.getProcessId(),bloqueado.getTime()});  
-                              //recorrerProcesos();
-                        } 
-                contadorBloqueados(); //Conteo del proceso bloqueado en grafica 
-                color_bloqueado++;
-                recorrerProcesos();
-                tiemposThread.interrupt(); //Interrumpir tiempos de procesos en gráfica
-                tiemposProcesos(); //Vuelve a iniciar el proceso en ejecución en el tiempo donde se quedó
-                actualizarGrafica();
+                       boolean procesoTerminado = false;
+                       int idProcesoEjecucion = ejecucion.getProcessId();
+
+                       for (Process bloqueado : list_bloqueados) {
+                           if (bloqueado.getProcessId() == idProcesoEjecucion) {
+                               procesoTerminado = true;
+                               break;
+                           }
+                       }
+
+                       if (procesoTerminado) {
+                           // El proceso en ejecución está en la lista de procesos terminados
+                           JOptionPane.showMessageDialog(this, "El proceso en ejecución está bloqueado.", "Error", JOptionPane.ERROR_MESSAGE);
+                       } else {
+                           // El proceso en ejecución no está en la lista de procesos terminados
+                           list_bloqueados.add(ejecucion);//Lista de bloquedos
+                            actualizarTiempos();
+                            if(tablaBloqueados.getRowCount()>=0){//Evitar fallas por las filas
+                                                      for(int i=tablaBloqueados.getRowCount()-1;i>=0;i--)
+                                                          tablaBloqueados.removeRow(i);//Vaciara todas las filas de tabla para eliminar datos repetidos
+                                                        }
+                            for(Process bloqueado: list_bloqueados){//Insertara los bloquedos a la tabla
+                                          //System.out.println(terminado.getProcessId());
+                                          tablaBloqueados.addRow(new Object[]{bloqueado.getProcessId(),bloqueado.getTime()});  
+                                          //recorrerProcesos();
+                                    } 
+                            contadorBloqueados(); //Conteo del proceso bloqueado en grafica 
+                            color_bloqueado++;
+                            recorrerProcesos();
+                            tiemposThread.interrupt(); //Interrumpir tiempos de procesos en gráfica
+                            tiemposProcesos(); //Vuelve a iniciar el proceso en ejecución en el tiempo donde se quedó
+                            //ejecucion = cola_listos.remove();
+                            actualizarGrafica();
+                            
+                       }
+                
     } else {
         // Mostrar un JOptionPane informando al usuario que no hay procesos en ejecución
         JOptionPane.showMessageDialog(this, "No hay procesos en ejecución por bloquear.", "Error", JOptionPane.ERROR_MESSAGE);
