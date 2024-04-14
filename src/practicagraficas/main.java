@@ -13,9 +13,12 @@ import java.util.Iterator;
 import java.util.Collections;
 
 public class main extends javax.swing.JFrame {
+    //Variables Planificador SJF
     int [] conjunto = {5,7,4,3,7,9,2,1,6,8}; 
     Burbuja b; //Instancia del objeto tipo Burbuja
     Grafico g; //Instancia objeto Grafica
+    Grafico g2; //Instancia objeto Grafica 
+    Grafico g3; //Instancia objeto Grafica 
     //--------------------------------------------------
     List<Process> procesos = new ArrayList<>(); // Lista procesos nuevos 
     List<Process> terminados = new ArrayList<>(); // Lista procesos terminados
@@ -35,6 +38,10 @@ public class main extends javax.swing.JFrame {
     //private Thread contadorThread; //Global Count Thread
     //private Thread GraficaThread; //Hilo de Grafica 
     private Thread tiemposThread; //Hilo de Tiempos
+    private Thread SJF; //Hilo del planificador SJF
+    private Thread SRT; //Hilo del planificador SRT
+    private Thread RR; //Hilo del planificador RR
+    private Thread globalThread; //Hilo contador global
     private volatile boolean ejecutando = true; //Interrupcion Continuar/Pausar hilo
     private int color_bloqueado = 0; //Color del "bloqueado" en cola de listos 
     private volatile boolean terminado = false; //Interrupcion Terminado
@@ -45,11 +52,61 @@ public class main extends javax.swing.JFrame {
     private DefaultTableModel tablaBloqueados = new DefaultTableModel(); //Tabla bloqueados 
     private DefaultTableModel tablaCola = new DefaultTableModel(); //Tabla cola listos
     private DefaultTableModel tablaTerminados = new DefaultTableModel(); //Tabla terminados
+    //---------------------------------------------------------------------------
+    //Variables Planificador SRT
+     //--------------------------------------------------
+    List<Process> procesosSRT = new ArrayList<>(); // Lista procesos nuevos 
+    List<Process> terminadosSRT = new ArrayList<>(); // Lista procesos terminados
+    List<Process> list_bloqueadosSRT = new ArrayList<>(); // Lista procesos bloqueados
+    Process ejecucionSRT; //Proceso en ejecucion 
+    List<Integer> tiempos_procesosSRT = new ArrayList<>(); // Lista para almacenar tiempos de procesos
+    Queue<Process> cola_listosSRT = new LinkedList<>(); //Cola de listos
+    //----------------------------------------------------
+     private int wait_timerSRT = 0; //Guarda la referencia del tiempo de proceso en ejecucion 
+    private Thread tiemposThreadSRT; //Hilo de Tiempos
+    private int QuantumSRT; //Quantum RR
+    private int quantum_timeSRT; //Quantum Time
+    private volatile boolean ejecutandoSRT = true; //Interrupcion Continuar/Pausar hilo
+    private int color_bloqueadoSRT = 0; //Color del "bloqueado" en cola de listos 
+    private volatile boolean terminadoSRT = false; //Interrupcion Terminado
+    private volatile boolean tiemposSRT = true; //Bandera de interrupcion de tiempos 
+    //private Thread bloqueadosThread; //Global Count Thread
+    private volatile boolean bloqueadosSRT = true; // Bandera para controlar la ejecución del hilo
+    //private int threadCount = 0; // Contador para generar identificadores únicos de hilo
+    private DefaultTableModel tablaBloqueadosSRT = new DefaultTableModel(); //Tabla bloqueados 
+    private DefaultTableModel tablaColaSRT = new DefaultTableModel(); //Tabla cola listos
+    private DefaultTableModel tablaTerminadosSRT = new DefaultTableModel(); //Tabla terminados
+     //---------------------------------------------------------------------------
+    //Variables Planificador RR
+     //--------------------------------------------------
+    List<Process> procesosRR = new ArrayList<>(); // Lista procesos nuevos 
+    List<Process> terminadosRR = new ArrayList<>(); // Lista procesos terminados
+    List<Process> list_bloqueadosRR = new ArrayList<>(); // Lista procesos bloqueados
+    Process ejecucionRR; //Proceso en ejecucion 
+    List<Integer> tiempos_procesosRR = new ArrayList<>(); // Lista para almacenar tiempos de procesos
+    Queue<Process> cola_listosRR = new LinkedList<>(); //Cola de listos
+    //----------------------------------------------------
+     private int wait_timerRR = 0; //Guarda la referencia del tiempo de proceso en ejecucion 
+    private Thread tiemposThreadRR; //Hilo de Tiempos
+    private int QuantumRR; //Quantum RR
+    private int quantum_timeRR; //Quantum Time
+    private volatile boolean ejecutandoRR = true; //Interrupcion Continuar/Pausar hilo
+    private int color_bloqueadoRR = 0; //Color del "bloqueado" en cola de listos 
+    private volatile boolean terminadoRR = false; //Interrupcion Terminado
+    private volatile boolean tiemposRR = true; //Bandera de interrupcion de tiempos 
+    //private Thread bloqueadosThread; //Global Count Thread
+    private volatile boolean bloqueadosRR = true; // Bandera para controlar la ejecución del hilo
+    //private int threadCount = 0; // Contador para generar identificadores únicos de hilo
+    private DefaultTableModel tablaBloqueadosRR = new DefaultTableModel(); //Tabla bloqueados 
+    private DefaultTableModel tablaColaRR = new DefaultTableModel(); //Tabla cola listos
+    private DefaultTableModel tablaTerminadosRR = new DefaultTableModel(); //Tabla terminados
     
     public main() {
         initComponents();
         b = new Burbuja(conjunto);
-        g = new Grafico();
+        g = new Grafico();  //Grafico SJF
+        g2 = new Grafico(); //Grafico SRT
+        g3 = new Grafico(); //Grafico RR
         contador_global = 0;  
     }
 
@@ -1022,137 +1079,170 @@ public class main extends javax.swing.JFrame {
     
     //Funcion principal
     private void iniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_iniciarActionPerformed
-   //Creacion de procesos 
-  if (ejecucion == null) {
-    tiempos_procesos.add(0); //Omite el primer tiempo en la grafica
-    boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
-  
-    do { //Cantidad de procesos 
-            if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
-                String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
-                if (cantidadText != null && !cantidadText.isEmpty()) {
-                    try {
-                        int cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
-
-                        // Crear los procesos con IDs distintos y asignar tiempos
-                        for (int i = 1; i < cantidad; i++) {
-                            Process proceso = new Process(ID);
-                            ID++;
-                            procesos.add(proceso);
-                            Collections.sort(procesos); //Ordena los tiempos de los procesos 
-//                            selectSORT(procesos);
-                        }
-
-                        // Mostrar los procesos creados
-                        StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
-                        for (Process proceso : procesos){
-                                sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
-                        }
-                        JOptionPane.showMessageDialog(null, sb.toString());
-
-                        cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
-
-                    } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
-                    }
-                } else {
-                    break; // Si se cancela el diálogo, salir del bucle
-                }
-            } else {
-                break; // Si ya se ingresó la cantidad de procesos, salir del bucle
-            }
-        } while (true);
-    //contadorGlobal();  //Iniciaa el contador global 
-   //Divide los procesos en sus respectivos estados "Ejecucion","Cola Listos","Nuevos"
-            //Procesos maximos en la cola de listos = 5
-             int count = 0; //Contador de procesos en el ciclo
-                 for (Process proceso : procesos) { //Recorre los procesos 
-                      if(count <= 4){ //Valida que solo 5 procesos inicien en la cola de listos
-                          proceso.setTimeArrival(0); //Asigna el tiempo de llegada
-                          cola_listos.offer(proceso); //Añade a la cola de listos un maximo de 5 procesos 
-                       }
-                      count++;
-                 }
-            //Elimina los procesos repetidos en "nuevos" que han sido añadidos a listos 
-             for(int j=0; j < cola_listos.size();j++){
-                  procesos.remove(0); 
-             }
- //Estados de procesos---------------------------------
-     //Asigna el proceso en estado "Ejecucion" 
-     ejecucion = cola_listos.remove(); 
-     int llegada = ejecucion.getTimeArrival();
-     ejecucion.setResponseTime(0); //Tiempo de respuesta del proceso (contador global - time arrival)
-     //System.out.println(ejecucion.getProcessId());
-     tiempos_procesos.add(ejecucion.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
-     //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
-     for (Process proceso : cola_listos) {
-         //System.out.println(proceso.getProcessId());
-         tiempos_procesos.add(proceso.getTime());
-     }  
-     //Añade los tiempos de los procesos en "Nuevos" a la grafica 
-     for (Process proceso : procesos){
-         //System.out.println(proceso.getProcessId());
-         tiempos_procesos.add(proceso.getTime());
-     }
-    actualizarTiempos();
-    actualizarGrafica();
-
-  //------------------------------------------------------------------------
-       //System.out.println("El valor es " + procesos[0].getProcessId());
-        //conjunto2 puede representar el "tiempo" de cada proceso
-        //int [] conjunto2 = {5,7,4,3,7,9,2,1,6,8,4,6,7,8,9,5,3,2,4,5,6,7,8,9,5,3};
-        //int [] conjunto2 = {7,5,4,3,2,8};
-        //g.crearHistograma(tiempos_procesos,panel,Color.white);
-        //------------------------------------------------------------------------
-        //Inicializacion de prueba tablas
-           //Tabla de procesos bloqueados
-           // Columnas de la tabla
-           tablaBloqueados.setColumnIdentifiers(new Object[]{"ID", "Tiempo-Proceso"});
-           // Modelo de la tabla y filas 
-           //tabla_bloqueados.setModel(tablaBloqueados);
-           for (int i = 0; i < 4; i++) {
-           tablaCola.addRow(new Object[]{5+i, 3+i});} 
-            //procesosBloqueados(13,0,7); //ID,fila,TT_actual = 0 (tiempo transcurrido bloqueado)
-            //procesosBloqueados(20,1,7); 
-            //procesosBloqueados(20,1,7); 
-            
-           
-           //Tabla de cola de procesos (Ej maxima cantidad de procesos en: bloqueados, ejecución y cola listos = 5) 
-           tablaCola.setColumnIdentifiers(new Object[]{"ID", "Transcurrido"});
-           tabla_cola.setModel(tablaCola);
-           for (int i = 0; i < 4; i++) {
-           tablaCola.addRow(new Object[]{5+i, 3+i});}
-           
-           //Tabla de procesos terminados
-           tablaTerminados.setColumnIdentifiers(new Object[]{"ID", "Finalización","Retorno","Espera"});
-           tabla_terminados.setModel(tablaTerminados);
-           for (int i = 0; i < 3; i++) {
-           tablaTerminados.addRow(new Object[]{5+i, 3+i,4+i});}
-        
-        //Metodos eliminar y modificar <--
-         // Elimina la fila del índice en la tabla 
-           //tablaBloqueados.removeRow(1);
-           // Modifica un valor en la tabla --> Args (nuevoValor,fila,columna) Ej: (11,0,1) = 11, fila 1, columna 2
-           //tablaBloqueados.setValueAt(11, 0, 1); 
-        //----------------------------------------------------------------------
-     //Inicializacion de prueba paneles
-          //Panel CPU
-          tiempo_cpu.setText(String.valueOf(0));
-          id_cpu.setText(String.valueOf(1));
-          ocupado_cpu.setText(String.valueOf(0));
-          //Tiempo llegada
-          tiempo_llegada.setText(String.valueOf(0));
-          //Tiempo respuesta
-          tiempo_respuesta.setText(String.valueOf(0));
-          //Tiempo espera
-          //tiempo_espera.setText(String.valueOf(0));
-          tiemposProcesos();
-  }else{
-  // Mostrar un JOptionPane informando al usuario que no hay procesos en ejecución
-        JOptionPane.showMessageDialog(this, "El programa ya ha sido iniciado.", "Error", JOptionPane.ERROR_MESSAGE);
-  }
+   // Inicio del planificador MLQ
+    SJF(); //Inicio del hilo planificador SJF
+    SRT(); //Inicio del hilo planificador SRT
+    RR(); //Inicio del hilo planificador RR
+    global_counter(); //Global Counter
     }//GEN-LAST:event_iniciarActionPerformed
 
+    private void global_counter(){
+      globalThread = new Thread(() -> {
+            while (true) {
+                try {
+                    // Pausar el hilo durante un segundo
+                    contador.setText(String.valueOf(contador_global));
+                    Thread.sleep(1000); // 1000 milisegundos = 1 segundo
+                    contador_global++;
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+    });
+    // Inicia el hilo del planificador 
+    globalThread.start();
+  }
+  //Inicio -> Modulo/Hilo Planificador SJF
+  private void SJF() {
+    SJF = new Thread(() -> {
+        try {
+            //CODE
+             //Creacion de procesos 
+                if (ejecucion == null) {
+                  tiempos_procesos.add(0); //Omite el primer tiempo en la grafica
+                  boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
+
+                  do { //Cantidad de procesos 
+                          if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
+                              String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
+                              if (cantidadText != null && !cantidadText.isEmpty()) {
+                                  try {
+                                      int cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
+
+                                      // Crear los procesos con IDs distintos y asignar tiempos
+                                      for (int i = 1; i < cantidad; i++) {
+                                          Process proceso = new Process(ID);
+                                          ID++;
+                                          procesos.add(proceso);
+                                          Collections.sort(procesos); //Ordena los tiempos de los procesos 
+              //                            selectSORT(procesos);
+                                      }
+
+                                      // Mostrar los procesos creados
+                                      StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
+                                      for (Process proceso : procesos){
+                                              sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
+                                      }
+                                      JOptionPane.showMessageDialog(null, sb.toString());
+
+                                      cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
+
+                                  } catch (NumberFormatException ex) {
+                                      JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
+                                  }
+                              } else {
+                                  break; // Si se cancela el diálogo, salir del bucle
+                              }
+                          } else {
+                              break; // Si ya se ingresó la cantidad de procesos, salir del bucle
+                          }
+                      } while (true);
+                  //contadorGlobal();  //Iniciaa el contador global 
+                 //Divide los procesos en sus respectivos estados "Ejecucion","Cola Listos","Nuevos"
+                          //Procesos maximos en la cola de listos = 5
+                           int count = 0; //Contador de procesos en el ciclo
+                               for (Process proceso : procesos) { //Recorre los procesos 
+                                    if(count <= 4){ //Valida que solo 5 procesos inicien en la cola de listos
+                                        proceso.setTimeArrival(0); //Asigna el tiempo de llegada
+                                        cola_listos.offer(proceso); //Añade a la cola de listos un maximo de 5 procesos 
+                                     }
+                                    count++;
+                               }
+                          //Elimina los procesos repetidos en "nuevos" que han sido añadidos a listos 
+                           for(int j=0; j < cola_listos.size();j++){
+                                procesos.remove(0); 
+                           }
+               //Estados de procesos---------------------------------
+                   //Asigna el proceso en estado "Ejecucion" 
+                   ejecucion = cola_listos.remove(); 
+                   int llegada = ejecucion.getTimeArrival();
+                   ejecucion.setResponseTime(0); //Tiempo de respuesta del proceso (contador global - time arrival)
+                   //System.out.println(ejecucion.getProcessId());
+                   tiempos_procesos.add(ejecucion.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+                   //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+                   for (Process proceso : cola_listos) {
+                       //System.out.println(proceso.getProcessId());
+                       tiempos_procesos.add(proceso.getTime());
+                   }  
+                   //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+                   for (Process proceso : procesos){
+                       //System.out.println(proceso.getProcessId());
+                       tiempos_procesos.add(proceso.getTime());
+                   }
+                  actualizarTiempos();
+                  actualizarGrafica();
+
+                //------------------------------------------------------------------------
+                     //System.out.println("El valor es " + procesos[0].getProcessId());
+                      //conjunto2 puede representar el "tiempo" de cada proceso
+                      //int [] conjunto2 = {5,7,4,3,7,9,2,1,6,8,4,6,7,8,9,5,3,2,4,5,6,7,8,9,5,3};
+                      //int [] conjunto2 = {7,5,4,3,2,8};
+                      //g.crearHistograma(tiempos_procesos,panel,Color.white);
+                      //------------------------------------------------------------------------
+                      //Inicializacion de prueba tablas
+                         //Tabla de procesos bloqueados
+                         // Columnas de la tabla
+                         tablaBloqueados.setColumnIdentifiers(new Object[]{"ID", "Tiempo-Proceso"});
+                         // Modelo de la tabla y filas 
+                         //tabla_bloqueados.setModel(tablaBloqueados);
+                         for (int i = 0; i < 4; i++) {
+                         tablaCola.addRow(new Object[]{5+i, 3+i});} 
+                          //procesosBloqueados(13,0,7); //ID,fila,TT_actual = 0 (tiempo transcurrido bloqueado)
+                          //procesosBloqueados(20,1,7); 
+                          //procesosBloqueados(20,1,7); 
+
+
+                         //Tabla de cola de procesos (Ej maxima cantidad de procesos en: bloqueados, ejecución y cola listos = 5) 
+                         tablaCola.setColumnIdentifiers(new Object[]{"ID", "Transcurrido"});
+                         tabla_cola.setModel(tablaCola);
+                         for (int i = 0; i < 4; i++) {
+                         tablaCola.addRow(new Object[]{5+i, 3+i});}
+
+                         //Tabla de procesos terminados
+                         tablaTerminados.setColumnIdentifiers(new Object[]{"ID", "Finalización","Retorno","Espera"});
+                         tabla_terminados.setModel(tablaTerminados);
+                         for (int i = 0; i < 3; i++) {
+                         tablaTerminados.addRow(new Object[]{5+i, 3+i,4+i});}
+
+                      //Metodos eliminar y modificar <--
+                       // Elimina la fila del índice en la tabla 
+                         //tablaBloqueados.removeRow(1);
+                         // Modifica un valor en la tabla --> Args (nuevoValor,fila,columna) Ej: (11,0,1) = 11, fila 1, columna 2
+                         //tablaBloqueados.setValueAt(11, 0, 1); 
+                      //----------------------------------------------------------------------
+                   //Inicializacion de prueba paneles
+                        //Panel CPU
+                        tiempo_cpu.setText(String.valueOf(0));
+                        id_cpu.setText(String.valueOf(1));
+                        ocupado_cpu.setText(String.valueOf(0));
+                        //Tiempo llegada
+                        tiempo_llegada.setText(String.valueOf(0));
+                        //Tiempo respuesta
+                        tiempo_respuesta.setText(String.valueOf(0));
+                        //Tiempo espera
+                        //tiempo_espera.setText(String.valueOf(0));
+                        tiemposProcesos();
+                }else{
+                // Mostrar un JOptionPane informando al usuario que no hay procesos en ejecución
+                      JOptionPane.showMessageDialog(this, "El programa ya ha sido iniciado.", "Error", JOptionPane.ERROR_MESSAGE);
+                }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    });
+    // Inicia el hilo del planificador 
+    SJF.start();
+  }
 //Funciones de interrupciones
     
     //--------------------------------------------------------------
@@ -1192,7 +1282,6 @@ public class main extends javax.swing.JFrame {
         actualizarTiempos();
         actualizarGrafica();
     }
-     
    //---------------------------------------------------------------
    private void actualizarGrafica() { //Funcion/Hilo de datos en Grafica
    
@@ -1241,7 +1330,7 @@ public class main extends javax.swing.JFrame {
                 } 
          
 }
-  
+  //------------------------------------------------
   private void tiemposProcesos() { //Funcion/Hilo Tiempos/procesos
     tiemposThread = new Thread(() -> {
         try {
@@ -1307,12 +1396,13 @@ public class main extends javax.swing.JFrame {
                                 ejecutado = true;
                                 //recorrerProcesos();
                                 //actualizarGrafica();
-                                pausar(); //Detiene el tiempo de ejecucion
+                                //pausar(); //Detiene el tiempo de ejecucion
                                 
                                 
                                 break;
                       }}
                 }
+                
                   
                  /*
                 if (!id_cpu.getText().equals("0")) { // Se mantiene a la espera de procesos nuevos si no hay
@@ -1320,14 +1410,18 @@ public class main extends javax.swing.JFrame {
                     if(g.colorProceso(0,Color.GREEN)){ // Compara si el ejecutado esta bloqueado
                         tiemposThread.interrupt();
                     }
-                    
+                
                 }*/
+                if ("1".equals(tiempo_cpu.getText())) {
+                     tiemposThread.interrupt(); //Interrumpir el planificador SJF
+                }
                 // Agregar alguna pausa para evitar un bucle infinito sin descanso
                 Thread.sleep(1000); // Por ejemplo, esperar 1000 milisegundos (1 segundo)
                 if(terminado){ // Si se termina un proceso, el "timer" se reinicia 
                     //timer=0;
                     terminado = false;
                 }
+                
                 /*
                 if(ejecucion.getTime() != 1){ //En caso de que no haya un proceso en ejecucion
                     if(g.colorProceso(0,Color.GREEN)){ // Compara si el ejecutado esta bloqueado
@@ -1369,13 +1463,13 @@ public class main extends javax.swing.JFrame {
                 actualizarGrafica(); // Actualiza la barra de "ejecucion" de acuerdo a su tiempo 
                 //timer++;
                 ejecucion.AddTimeRun(); //Suma 1 al TT (Equivalente a ejecucin.TimeRun++)
-                contador_global++;
+                //contador_global++;
                 wait_timer = ejecucion.getTimeRun(); //Guarda la referencia del tiempo del proceso en ejecucion atual
                 //actual_timer = timer; //Guarda la referencia del tiempo en proceso en ejecucion
                 quantum_time--; 
                 //quantum_label.setText(String.valueOf(quantum_time));
                 ejecutado = false;
-                contador.setText(String.valueOf(contador_global));
+                //contador.setText(String.valueOf(contador_global));
                 
             }
         } catch (InterruptedException e) {
@@ -1480,7 +1574,930 @@ public class main extends javax.swing.JFrame {
      //ordenarCola();
      //actualizarGrafica();
        
+   }//FIN Modulo SJF 
+    //-----------------------------------------------------------------------
+  //Modulo/Hilo Planificador SRT
+  private void SRT() {
+    SRT = new Thread(() -> {
+        try {
+            //Creacion de procesos 
+                if (ejecucionSRT == null) {
+                  tiempos_procesosSRT.add(0); //Omite el primer tiempo en la grafica
+                  boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
+                 do { //Pide el valor del Quantum hazta que sea valido 
+                  String quantumText = JOptionPane.showInputDialog(null, "Ingresa el Quantum de los procesos:");
+
+                  try {
+                      if (quantumText != null && !quantumText.isEmpty()) {
+                          int quantum = Integer.parseInt(quantumText);
+                          if (quantum > 3) {
+                              // Quantum válido, salir del bucle
+                              QuantumSRT = quantum; //Asigna el valor de referencia del Quantum 
+                              quantum_timeSRT = QuantumSRT; //Asigna el valor del tiempo del hilo del Quantum 
+                              //quantum_label.setText(String.valueOf(Quantum));
+                              break;
+                          } else {
+                              throw new IllegalArgumentException("El Quantum debe ser mayor a 3.");
+                          }
+                      } else {
+                          throw new IllegalArgumentException("El Quantum no puede estar vacío.");
+                      }
+                  } catch (NumberFormatException ex) {
+                      JOptionPane.showMessageDialog(null, "Ingrese un Quantum válido (número entero) mayor a 3.", "Error", JOptionPane.ERROR_MESSAGE);
+                  } catch (IllegalArgumentException ex) {
+                      JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                  }
+              } while (true);
+                  do { //Cantidad de procesos 
+                          if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
+                              String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
+                              if (cantidadText != null && !cantidadText.isEmpty()) {
+                                  try {
+                                      int cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
+
+                                      // Crear los procesos con IDs distintos y asignar tiempos
+                                      for (int i = 1; i < cantidad; i++) {
+                                          Process proceso = new Process(ID);
+                                          ID++;
+                                          procesosSRT.add(proceso);
+                                          Collections.sort(procesosSRT);
+              //                            selectSORT(procesos);
+                                      }
+
+                                      // Mostrar los procesos creados
+                                      StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
+                                      for (Process proceso : procesosSRT){
+                                              sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
+                                      }
+                                      JOptionPane.showMessageDialog(null, sb.toString());
+
+                                      cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
+
+                                  } catch (NumberFormatException ex) {
+                                      JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
+                                  }
+                              } else {
+                                  break; // Si se cancela el diálogo, salir del bucle
+                              }
+                          } else {
+                              break; // Si ya se ingresó la cantidad de procesos, salir del bucle
+                          }
+                      } while (true);
+                  //contadorGlobal();  //Iniciaa el contador global 
+                 //Divide los procesos en sus respectivos estados "Ejecucion","Cola Listos","Nuevos"
+                          //Procesos maximos en la cola de listos = 5
+                           int count = 0; //Contador de procesos en el ciclo
+                               for (Process proceso : procesosSRT) { //Recorre los procesos 
+                                    if(count <= 4){ //Valida que solo 5 procesos inicien en la cola de listos
+                                        proceso.setTimeArrival(0); //Asigna el tiempo de llegada
+                                        cola_listosSRT.offer(proceso); //Añade a la cola de listos un maximo de 5 procesos 
+                                     }
+                                    count++;
+                               }
+                          //Elimina los procesos repetidos en "nuevos" que han sido añadidos a listos 
+                           for(int j=0; j < cola_listosSRT.size();j++){
+                                procesosSRT.remove(0); 
+                           }
+               //Estados de procesos---------------------------------
+                   //Asigna el proceso en estado "Ejecucion" 
+                   ejecucionSRT = cola_listosSRT.remove(); 
+                   int llegada = ejecucionSRT.getTimeArrival();
+                   ejecucionSRT.setResponseTime(0); //Tiempo de respuesta del proceso (contador global - time arrival)
+                   //System.out.println(ejecucion.getProcessId());
+                   tiempos_procesosSRT.add(ejecucionSRT.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+                   //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+                   for (Process proceso : cola_listosSRT) {
+                       //System.out.println(proceso.getProcessId());
+                       tiempos_procesosSRT.add(proceso.getTime());
+                   }  
+                   //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+                   for (Process proceso : procesosSRT){
+                       //System.out.println(proceso.getProcessId());
+                       tiempos_procesosSRT.add(proceso.getTime());
+                   }
+                  actualizarTiemposSRT();
+                  actualizarGraficaSRT();
+
+                //------------------------------------------------------------------------
+                     //System.out.println("El valor es " + procesos[0].getProcessId());
+                      //conjunto2 puede representar el "tiempo" de cada proceso
+                      //int [] conjunto2 = {5,7,4,3,7,9,2,1,6,8,4,6,7,8,9,5,3,2,4,5,6,7,8,9,5,3};
+                      //int [] conjunto2 = {7,5,4,3,2,8};
+                      //g.crearHistograma(tiempos_procesos,panel,Color.white);
+                      //------------------------------------------------------------------------
+                      //Inicializacion de prueba tablas
+                         //Tabla de procesos bloqueados
+                         // Columnas de la tabla
+                         tablaBloqueados.setColumnIdentifiers(new Object[]{"ID", "Tiempo-Proceso"});
+                         // Modelo de la tabla y filas 
+                         //tabla_bloqueados.setModel(tablaBloqueados);
+                         for (int i = 0; i < 4; i++) {
+                         tablaColaSRT.addRow(new Object[]{5+i, 3+i});} 
+                          //procesosBloqueados(13,0,7); //ID,fila,TT_actual = 0 (tiempo transcurrido bloqueado)
+                          //procesosBloqueados(20,1,7); 
+                          //procesosBloqueados(20,1,7); 
+
+
+                         //Tabla de cola de procesos (Ej maxima cantidad de procesos en: bloqueados, ejecución y cola listos = 5) 
+                         tablaColaSRT.setColumnIdentifiers(new Object[]{"ID", "Transcurrido"});
+                         tabla_cola1.setModel(tablaColaSRT);
+                         for (int i = 0; i < 4; i++) {
+                         tablaColaSRT.addRow(new Object[]{5+i, 3+i});}
+
+                         //Tabla de procesos terminados
+                         tablaTerminadosSRT.setColumnIdentifiers(new Object[]{"ID", "Final","Retorno","Espera"});
+                         tabla_terminados1.setModel(tablaTerminadosSRT);
+                         for (int i = 0; i < 3; i++) {
+                         tablaTerminadosSRT.addRow(new Object[]{5+i, 3+i,4+i});}
+
+                      //Metodos eliminar y modificar <--
+                       // Elimina la fila del índice en la tabla 
+                         //tablaBloqueados.removeRow(1);
+                         // Modifica un valor en la tabla --> Args (nuevoValor,fila,columna) Ej: (11,0,1) = 11, fila 1, columna 2
+                         //tablaBloqueados.setValueAt(11, 0, 1); 
+                      //----------------------------------------------------------------------
+                   //Inicializacion de prueba paneles
+                        //Panel CPU
+                        tiempo_cpu1.setText(String.valueOf(0));
+                        id_cpu1.setText(String.valueOf(1));
+                        ocupado_cpu1.setText(String.valueOf(0));
+                        //Tiempo llegada
+                        tiempo_llegada1.setText(String.valueOf(0));
+                        //Tiempo respuesta
+                        tiempo_respuesta1.setText(String.valueOf(0));
+                        //Tiempo espera
+                        //tiempo_espera.setText(String.valueOf(0));
+                        tiemposProcesosSRT();
+                }else{
+                // Mostrar un JOptionPane informando al usuario que no hay procesos en ejecución
+                      JOptionPane.showMessageDialog(this, "El programa ya ha sido iniciado.", "Error", JOptionPane.ERROR_MESSAGE);
+                } 
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    });
+    // Inicia el hilo del planificador 
+    SRT.start();
+  }
+ private void actualizarGraficaSRT() { //Funcion/Hilo de datos en Grafica SRT
+   
+                // Llamar al método crearHistograma con tiempos_procesos
+                g2.crearHistograma(tiempos_procesosSRT.stream().mapToInt(Integer::intValue).toArray(), panel1, Color.white);
+                for (int i = 0; i < tiempos_procesosSRT.size(); i++) {
+                    // Editar el color de un proceso en la grafica
+                    if (i == 0) { // Color del proceso en ejecución
+                        g2.editarColorProceso(i, Color.red);
+                    } else if (i > 0 && i < 5) { // Color de procesos en cola
+                        g2.editarColorProceso(i, Color.CYAN);
+                    } else if (i >= 5) { // Color de procesos nuevos
+                        g2.editarColorProceso(i, new Color(139, 69, 19));
+                    }
+                    if(color_bloqueadoSRT > 0){
+                       g2.editarColorProceso(4, Color.green);
+                       if(color_bloqueadoSRT >= 2){
+                            g2.editarColorProceso(3, Color.green);}
+                       if(color_bloqueadoSRT >= 3){
+                            g2.editarColorProceso(2, Color.green);}
+                       if(color_bloqueadoSRT >= 4){
+                            g2.editarColorProceso(1, Color.green);}
+                       if(color_bloqueadoSRT >= 5){
+                            g2.editarColorProceso(0, Color.green);}
+                    }
+                }
+                  //Tabla de "Terminados" en la interfaz
+                if(tablaTerminadosSRT.getRowCount()>=0){//Evitar fallas por las filas
+                    for(int i=tablaTerminadosSRT.getRowCount()-1;i>=0;i--)
+                        tablaTerminadosSRT.removeRow(i);//Vaciara todas las filas de tabla para eliminar datos repetidos
+                }
+                //System.out.println("Terminados actuales");
+                for(Process terminado: terminadosSRT){//Insertara toda la lista de terminados a la tabla
+                      //System.out.println(terminado.getProcessId());
+                      tablaTerminadosSRT.addRow(new Object[]{terminado.getProcessId(),terminado.getCompletionTime(),terminado.getReturnTime(),terminado.getWaitTime()});   
+                }  
+                 if(tablaColaSRT.getRowCount()>=0){//Evitar fallas por las filas
+                    for(int i=tablaColaSRT.getRowCount()-1;i>=0;i--)
+                        tablaColaSRT.removeRow(i);//Vaciara todas las filas de tabla para eliminar datos repetidos
+                }
+                //System.out.println("Terminados actuales");
+                for(Process cola: cola_listosSRT){//Insertara toda la cola de listos a la tabla
+                      //System.out.println(terminado.getProcessId());
+                      tablaColaSRT.addRow(new Object[]{cola.getProcessId(),cola.getTimeRun()});  
+                      //recorrerProcesos();
+                } 
+         
+}
+   private void ordenarCola(){
+                    if(cola_listosSRT.size() != 0){
+                       List<Process> auxList = new ArrayList<>();
+                    for (int i=0; i<cola_listosSRT.size();i++) {
+                          //System.out.println(proceso.getProcessId());
+                          auxList.add(cola_listosSRT.remove());
+                   }
+                    Collections.sort(auxList);
+                    Collections.sort(tiempos_procesosSRT);
+                   for (Process proceso : auxList) {
+                          //System.out.println(proceso.getProcessId());
+                          cola_listosSRT.offer(proceso);
+                   }
+                   }
    }
+private void tiemposProcesosSRT() { //Funcion/Hilo Tiempos/procesos SRT
+    tiemposThreadSRT = new Thread(() -> {
+        try {
+            boolean ejecutado = false; // Variable para controlar si ya se ejecutó el bloque de código
+            //int timer = time;
+            while (tiemposSRT) { // Bucle que se ejecuta mientras tiempos sea verdadero
+                // Verificar si ejecucion.getTime() es igual a contador_global
+                if(quantum_timeSRT < 1){ //Si el Quantum llega a 0
+                   ejecucionSRT.setTime(ejecucionSRT.getTime()-ejecucionSRT.getTimeRun());
+                   cola_listosSRT.offer(ejecucionSRT); //Regresa el proceso a la cola 
+//                   tiempos_procesos.set(0,ejecucion.getTime());
+                    ordenarCola();
+                   
+                   ejecucionSRT = cola_listosSRT.remove();
+                   quantum_timeSRT = QuantumSRT; //Reincia el quantum
+                    
+                   actualizarTiemposSRT();
+                   //recorrerProcesos(); //Recorre de nuevo los procesos actuales  
+                   //ejecutado = true; // Marcar como ejecutado
+                   //timer = 0;
+                }
+                if (ejecucionSRT.getTimeRun() >= ejecucionSRT.getTime() && !ejecutado) { //Compara si el TT ha alcanzado su tiempo de ejecución
+                    ejecucionSRT.setCompletionTime(contador_global); //Añade el tiempo de finalizacion
+                    int finalizacion = ejecucionSRT.getCompletionTime();
+                    int llegada = ejecucionSRT.getTimeArrival();
+                    ejecucionSRT.setReturnTime(finalizacion-llegada); //Añade el tiempo de retorno 
+                    int retorno = ejecucionSRT.getReturnTime();
+                    ejecucionSRT.setWaitTime(retorno-ejecucionSRT.getTimeRun());
+                    //tiempo_espera.setText(String.valueOf(ejecucion.getWaitTime()));
+                    if(ejecucionSRT.getTime()!=1){ //Al estar el "if" al iniciar un proceso nuevo el "ultimo" en la tabla se elimina
+                    terminadosSRT.add(ejecucionSRT); // Sino, añade el nuevo terminado
+                    Collections.sort(procesosSRT);
+                    }
+                    ejecucionSRT.setTime(1);
+                    
+                    System.out.println("Terminado noral");
+                    System.out.println(ejecucionSRT.getProcessId());
+                    //ejecucion.setTime(1); // Limpiar el tiempo del proceso en ejecución.
+                    //System.out.println(timer)
+                    recorrerProcesosSRT();
+                    ejecutado = true; // Marcar como ejecutado
+                    
+                    //quantum_time = Quantum; //Reinicia el quantum
+                   
+                } else if (ejecucionSRT.getTime() != ejecucionSRT.getTimeRun()) { 
+                    ejecutado = false; // Reiniciar el indicador si el tiempo ha cambiado
+                }
+                if(ejecucionSRT.getTime() == 1){
+                    for (Process terminado : terminadosSRT) {
+                            if (ejecucionSRT.getProcessId() == terminado.getProcessId()) {
+                                // Eliminar el proceso en ejecución de la lista de terminados
+                                terminadosSRT.remove(terminado);
+                                tiempo_cpu1.setText(String.valueOf(0));
+                                id_cpu1.setText(String.valueOf(0));
+                                ocupado_cpu1.setText(String.valueOf(0));
+                                //Tiempo llegada
+                                tiempo_llegada1.setText(String.valueOf(0));
+                                //Tiempo respuesta
+                                tiempo_respuesta1.setText(String.valueOf(0));
+                                //System.out.println(ejecucion.getTime());
+                                //recorrerProcesos();
+                                ejecutado = true;
+                                //recorrerProcesos();
+                                //actualizarGrafica();
+                                //pausar(); //Detiene el tiempo de ejecucion   
+                                
+                                break;
+                      }}
+                }
+                  
+                 /*
+                if (!id_cpu.getText().equals("0")) { // Se mantiene a la espera de procesos nuevos si no hay
+                    //timer = 0;
+                    if(g.colorProceso(0,Color.GREEN)){ // Compara si el ejecutado esta bloqueado
+                        tiemposThread.interrupt();
+                    }
+                
+                }*/
+                if ("1".equals(tiempo_cpu1.getText())) {
+                     tiemposThreadSRT.interrupt(); //Interrumpir el planificador SJF
+                }
+                // Agregar alguna pausa para evitar un bucle infinito sin descanso
+                Thread.sleep(1000); // Por ejemplo, esperar 1000 milisegundos (1 segundo)
+                if(terminadoSRT){ // Si se termina un proceso, el "timer" se reinicia 
+                    //timer=0;
+                    terminadoSRT = false;
+                }
+                /*
+                if(ejecucion.getTime() != 1){ //En caso de que no haya un proceso en ejecucion
+                    if(g.colorProceso(0,Color.GREEN)){ // Compara si el ejecutado esta bloqueado
+                        tiemposThread.interrupt();
+                    }
+                }*/
+                //Actualizar el Panel del proceso en ejecucion
+                if(tablaBloqueadosSRT.getRowCount()>0 && cola_listosSRT.size() == 0){
+                        System.out.println("Bloqueado en tabla");
+                        int rowCount = tablaBloqueadosSRT.getRowCount();
+                        // Recorrer cada fila de la tabla
+                        for (int i = 0; i < rowCount; i++) {
+                            // Obtener los valores de la fila actual
+                            int id = (int) tablaBloqueadosSRT.getValueAt(i, 0);
+                            int tiempoProceso = (int) tablaBloqueadosSRT.getValueAt(i, 1);
+
+                            // Crear un nuevo objeto Process con los valores de la fila
+                            Process newProcess = new Process(id);
+                            newProcess.setTime(tiempoProceso);
+
+                            // Agregar el proceso a la lista de procesos
+                            boolean repetido = false;
+                             for (Process cola : cola_listosSRT) {
+                                if (newProcess.getProcessId() == cola.getProcessId()) {
+                                    // Eliminar el proceso en ejecución de la lista de terminados
+                                     repetido = true;
+                                     break;
+                             }
+                             if(repetido){procesosSRT.add(newProcess);}
+                        }}
+                }
+                
+                id_cpu1.setText(String.valueOf(ejecucionSRT.getProcessId()));
+                ocupado_cpu1.setText(String.valueOf(ejecucionSRT.getTimeRun()+1));
+                tiempo_cpu1.setText(String.valueOf(ejecucionSRT.getTime()));
+                tiempo_llegada1.setText(String.valueOf(ejecucionSRT.getTimeArrival()));
+                tiempo_respuesta1.setText(String.valueOf(ejecucionSRT.getResponseTime()));
+                tiempos_procesosSRT.set(1, ejecucionSRT.getTimeRun()+1); // Actualizar el tiempo del proceso en ejecución
+                actualizarGraficaSRT(); // Actualiza la barra de "ejecucion" de acuerdo a su tiempo 
+                //timer++;
+                ejecucionSRT.AddTimeRun(); //Suma 1 al TT (Equivalente a ejecucin.TimeRun++)
+                //contador_global++;
+                wait_timerSRT = ejecucionSRT.getTimeRun(); //Guarda la referencia del tiempo del proceso en ejecucion atual
+                //actual_timer = timer; //Guarda la referencia del tiempo en proceso en ejecucion
+                quantum_timeSRT--; 
+                //quantum_label.setText(String.valueOf(quantum_time));
+                ejecutado = false;
+                //contador.setText(String.valueOf(contador_global));              
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    });
+    // Inicia el hilo
+    tiemposThreadSRT.start();
+}
+ private void actualizarTiemposSRT() { 
+     tiempos_procesosSRT.clear(); //Limpia los tiempos de los procesos anteriores 
+      tiempos_procesosSRT.add(0); //Omite el primer tiempo en la grafica
+      tiempos_procesosSRT.add(ejecucionSRT.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+            //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+            //System.out.println("cola");
+      if(cola_listosSRT.size() != 0){
+      for (Process proceso : cola_listosSRT) {
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosSRT.add(proceso.getTime());
+     }}
+     //System.out.println("nuevos");
+     //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+     if(procesosSRT.size() != 0){
+        for (Process proceso : procesosSRT){
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosSRT.add(proceso.getTime());
+     }}
+     ordenarCola();
+  }
+private void recorrerProcesosSRT() { //Recorre la cola de procesos
+    //Asigna el proceso en estado "Ejecucion" 
+     if(cola_listosSRT.size() != 0){ //Si hay procesos en cola 
+         ejecucionSRT = cola_listosSRT.remove();
+         ordenarCola();
+     }else{ //Si ya no hay procesos en cola
+            tiempos_procesosSRT.clear();
+            actualizarGraficaSRT();
+            if(procesosSRT.size()!=0){
+                    //pausar(); tiemposThread.interrupt(); tiempos_procesos.clear(); actualizarGrafica();
+                        int count = 0; //Contador de procesos en el ciclo
+                            for (Process proceso : procesosSRT) { //Recorre los procesos 
+                                 if(count <= 4){ //Valida que solo 5 procesos inicien en la cola de listos
+                                     cola_listosSRT.offer(proceso); //Añade a la cola de listos un maximo de 5 procesos 
+                                     ordenarCola();
+                                  }
+                                 count++;
+                            }
+                       //Elimina los procesos repetidos en "nuevos" que han sido añadidos a listos 
+                        for(int j=0; j < cola_listosSRT.size();j++){
+                             procesosSRT.remove(0); 
+                        }
+            //Estados de procesos---------------------------------
+                //Asigna el proceso en estado "Ejecucion" 
+                ejecucionSRT = cola_listosSRT.remove(); 
+                //System.out.println(ejecucion.getProcessId());
+                tiempos_procesosSRT.add(ejecucionSRT.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+                //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+                for (Process proceso : cola_listosSRT) {
+                    //System.out.println(proceso.getProcessId());
+                    tiempos_procesosSRT.add(proceso.getTime());
+                }  
+                //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+                for (Process proceso : procesosSRT){
+                    //System.out.println(proceso.getProcessId());
+                    tiempos_procesosSRT.add(proceso.getTime());
+                }
+                ordenarCola();
+                }
+     } 
+      //Interrumpir bloqueados}
+     //System.out.println(ejecucion.getProcessId());
+      //Añade un proceso de "nuevos" a la "cola listos"
+      int llegada = ejecucionSRT.getTimeArrival();
+      
+      ejecucionSRT.setResponseTime(contador_global-llegada); //Tiempo de respuesta del proceso 
+      //System.out.println("LLegada menos contador ");
+      //System.out.println(ejecucion.getResponseTime());
+      //System.out.println(contador_global);
+       if(procesosSRT.size() != 0){
+           Process proceso = procesosSRT.remove(0);
+           proceso.setTimeArrival(contador_global); //Asigna el tiempo de llegada
+           cola_listosSRT.offer(proceso);
+       }
+       //System.out.println(ejecucion.getProcessId());
+      tiempos_procesosSRT.clear(); //Limpia los tiempos de los procesos anteriores 
+      tiempos_procesosSRT.add(0); //Omite el primer tiempo en la grafica
+      tiempos_procesosSRT.add(ejecucionSRT.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+            //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+            //System.out.println("cola");
+      if(cola_listosSRT.size() != 0){
+      for (Process proceso : cola_listosSRT) {
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosSRT.add(proceso.getTime());
+     }}
+     //System.out.println("nuevos");
+     //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+     if(procesosSRT.size() != 0){
+        for (Process proceso : procesosSRT){
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosSRT.add(proceso.getTime());
+     }}
+     ordenarCola();
+     //actualizarGrafica();
+       
+   }
+   //FIN Modulo SRT
+  
+  
+  
+  
+  
+  
+  
+  
+  //-------------------------------------------------------------------------
+  //Modulo/Hilo Planificador RR
+  private void RR() {
+    RR = new Thread(() -> {
+        try {
+            if (ejecucionRR == null) {
+                    tiempos_procesosRR.add(0); //Omite el primer tiempo en la grafica
+                    boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
+                   do { //Pide el valor del Quantum hazta que sea valido 
+                    String quantumText = JOptionPane.showInputDialog(null, "Ingresa el Quantum de los procesos:");
+
+                    try {
+                        if (quantumText != null && !quantumText.isEmpty()) {
+                            int quantum = Integer.parseInt(quantumText);
+                            if (quantum > 3) {
+                                // Quantum válido, salir del bucle
+                                QuantumRR = quantum; //Asigna el valor de referencia del Quantum 
+                                quantum_timeRR = QuantumRR; //Asigna el valor del tiempo del hilo del Quantum 
+                                //quantum_label.setText(String.valueOf(QuantumRR));
+                                break;
+                            } else {
+                                throw new IllegalArgumentException("El Quantum debe ser mayor a 3.");
+                            }
+                        } else {
+                            throw new IllegalArgumentException("El Quantum no puede estar vacío.");
+                        }
+                    } catch (NumberFormatException ex) {
+                        JOptionPane.showMessageDialog(null, "Ingrese un Quantum válido (número entero) mayor a 3.", "Error", JOptionPane.ERROR_MESSAGE);
+                    } catch (IllegalArgumentException ex) {
+                        JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                    }
+                } while (true);
+                    do { //Cantidad de procesos 
+                            if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
+                                String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
+                                if (cantidadText != null && !cantidadText.isEmpty()) {
+                                    try {
+                                        int cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
+
+                                        // Crear los procesos con IDs distintos y asignar tiempos
+                                        for (int i = 1; i < cantidad; i++) {
+                                            Process proceso = new Process(ID);
+                                            ID++;
+                                            procesosRR.add(proceso);
+                                        }
+
+                                        // Mostrar los procesos creados
+                                        StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
+                                        for (Process proceso : procesosRR){
+                                                sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
+                                        }
+                                        JOptionPane.showMessageDialog(null, sb.toString());
+
+                                        cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
+
+                                    } catch (NumberFormatException ex) {
+                                        JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
+                                    }
+                                } else {
+                                    break; // Si se cancela el diálogo, salir del bucle
+                                }
+                            } else {
+                                break; // Si ya se ingresó la cantidad de procesos, salir del bucle
+                            }
+                        } while (true);
+                    //contadorGlobal();  //Iniciaa el contador global 
+                   //Divide los procesos en sus respectivos estados "Ejecucion","Cola Listos","Nuevos"
+                            //Procesos maximos en la cola de listos = 5
+                             int count = 0; //Contador de procesos en el ciclo
+                                 for (Process proceso : procesosRR) { //Recorre los procesos 
+                                      if(count <= 4){ //Valida que solo 5 procesos inicien en la cola de listos
+                                          proceso.setTimeArrival(0); //Asigna el tiempo de llegada
+                                          cola_listosRR.offer(proceso); //Añade a la cola de listos un maximo de 5 procesos 
+                                       }
+                                      count++;
+                                 }
+                            //Elimina los procesos repetidos en "nuevos" que han sido añadidos a listos 
+                             for(int j=0; j < cola_listosRR.size();j++){
+                                  procesosRR.remove(0); 
+                             }
+                 //Estados de procesos---------------------------------
+                     //Asigna el proceso en estado "Ejecucion" 
+                     ejecucionRR = cola_listosRR.remove(); 
+                     int llegada = ejecucionRR.getTimeArrival();
+                     ejecucionRR.setResponseTime(0); //Tiempo de respuesta del proceso (contador global - time arrival)
+                     //System.out.println(ejecucion.getProcessId());
+                     tiempos_procesosRR.add(ejecucionRR.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+                     //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+                     for (Process proceso : cola_listosRR) {
+                         //System.out.println(proceso.getProcessId());
+                         tiempos_procesosRR.add(proceso.getTime());
+                     }  
+                     //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+                     for (Process proceso : procesosRR){
+                         //System.out.println(proceso.getProcessId());
+                         tiempos_procesosRR.add(proceso.getTime());
+                     }
+                    actualizarGraficaRR();
+
+                  //------------------------------------------------------------------------
+                       //System.out.println("El valor es " + procesos[0].getProcessId());
+                        //conjunto2 puede representar el "tiempo" de cada proceso
+                        //int [] conjunto2 = {5,7,4,3,7,9,2,1,6,8,4,6,7,8,9,5,3,2,4,5,6,7,8,9,5,3};
+                        //int [] conjunto2 = {7,5,4,3,2,8};
+                        //g.crearHistograma(tiempos_procesos,panel,Color.white);
+                        //------------------------------------------------------------------------
+                        //Inicializacion de prueba tablas
+                           //Tabla de procesos bloqueados
+                           // Columnas de la tabla
+                           tablaBloqueadosRR.setColumnIdentifiers(new Object[]{"ID", "Tiempo-Proceso"});
+                           // Modelo de la tabla y filas 
+                           //tabla_bloqueados.setModel(tablaBloqueados);
+                           for (int i = 0; i < 4; i++) {
+                           tablaColaRR.addRow(new Object[]{5+i, 3+i});} 
+                            //procesosBloqueados(13,0,7); //ID,fila,TT_actual = 0 (tiempo transcurrido bloqueado)
+                            //procesosBloqueados(20,1,7); 
+                            //procesosBloqueados(20,1,7); 
+
+
+                           //Tabla de cola de procesos (Ej maxima cantidad de procesos en: bloqueados, ejecución y cola listos = 5) 
+                           tablaColaRR.setColumnIdentifiers(new Object[]{"ID", "Transcurrido"});
+                           tabla_cola2.setModel(tablaColaRR);
+                           for (int i = 0; i < 4; i++) {
+                           tablaColaRR.addRow(new Object[]{5+i, 3+i});}
+
+                           //Tabla de procesos terminados
+                           tablaTerminadosRR.setColumnIdentifiers(new Object[]{"ID", "Final","Retorno","Espera"});
+                           tabla_terminados2.setModel(tablaTerminadosRR);
+                           for (int i = 0; i < 3; i++) {
+                           tablaTerminadosRR.addRow(new Object[]{5+i, 3+i,4+i});}
+
+                        //Metodos eliminar y modificar <--
+                         // Elimina la fila del índice en la tabla 
+                           //tablaBloqueados.removeRow(1);
+                           // Modifica un valor en la tabla --> Args (nuevoValor,fila,columna) Ej: (11,0,1) = 11, fila 1, columna 2
+                           //tablaBloqueados.setValueAt(11, 0, 1); 
+                        //----------------------------------------------------------------------
+                     //Inicializacion de prueba paneles
+                          //Panel CPU
+                          tiempo_cpu2.setText(String.valueOf(0));
+                          id_cpu2.setText(String.valueOf(1));
+                          ocupado_cpu2.setText(String.valueOf(0));
+                          //Tiempo llegada
+                          tiempo_llegada2.setText(String.valueOf(0));
+                          //Tiempo respuesta
+                          tiempo_respuesta2.setText(String.valueOf(0));
+                          //Tiempo espera
+                          //tiempo_espera.setText(String.valueOf(0));
+                          tiemposProcesosRR();
+                  }else{
+                  // Mostrar un JOptionPane informando al usuario que no hay procesos en ejecución
+                        JOptionPane.showMessageDialog(this, "El programa ya ha sido iniciado.", "Error", JOptionPane.ERROR_MESSAGE);
+                  }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    });
+    // Inicia el hilo del planificador 
+    RR.start();
+  } 
+ private void actualizarGraficaRR() { //Funcion/Hilo de datos en Grafica
+   
+                // Llamar al método crearHistograma con tiempos_procesos
+                g3.crearHistograma(tiempos_procesosRR.stream().mapToInt(Integer::intValue).toArray(), panel2, Color.white);
+                for (int i = 0; i < tiempos_procesosRR.size(); i++) {
+                    // Editar el color de un proceso en la grafica
+                    if (i == 0) { // Color del proceso en ejecución
+                        g3.editarColorProceso(i, Color.red);
+                    } else if (i > 0 && i < 5) { // Color de procesos en cola
+                        g3.editarColorProceso(i, Color.CYAN);
+                    } else if (i >= 5) { // Color de procesos nuevos
+                        g3.editarColorProceso(i, new Color(139, 69, 19));
+                    }
+                    if(color_bloqueadoRR > 0){
+                       g3.editarColorProceso(4, Color.green);
+                       if(color_bloqueadoRR >= 2){
+                            g3.editarColorProceso(3, Color.green);}
+                       if(color_bloqueadoRR >= 3){
+                            g3.editarColorProceso(2, Color.green);}
+                       if(color_bloqueadoRR >= 4){
+                            g3.editarColorProceso(1, Color.green);}
+                       if(color_bloqueadoRR >= 5){
+                            g3.editarColorProceso(0, Color.green);}
+                    }
+                }
+                  //Tabla de "Terminados" en la interfaz
+                if(tablaTerminadosRR.getRowCount()>=0){//Evitar fallas por las filas
+                    for(int i=tablaTerminadosRR.getRowCount()-1;i>=0;i--)
+                        tablaTerminadosRR.removeRow(i);//Vaciara todas las filas de tabla para eliminar datos repetidos
+                }
+                //System.out.println("Terminados actuales");
+                for(Process terminado: terminadosRR){//Insertara toda la lista de terminados a la tabla
+                      //System.out.println(terminado.getProcessId());
+                      tablaTerminadosRR.addRow(new Object[]{terminado.getProcessId(),terminado.getCompletionTime(),terminado.getReturnTime(),terminado.getWaitTime()});   
+                }  
+                 if(tablaColaRR.getRowCount()>=0){//Evitar fallas por las filas
+                    for(int i=tablaColaRR.getRowCount()-1;i>=0;i--)
+                        tablaColaRR.removeRow(i);//Vaciara todas las filas de tabla para eliminar datos repetidos
+                }
+                //System.out.println("Terminados actuales");
+                for(Process cola: cola_listosRR){//Insertara toda la cola de listos a la tabla
+                      //System.out.println(terminado.getProcessId());
+                      tablaColaRR.addRow(new Object[]{cola.getProcessId(),cola.getTimeRun()});  
+                      //recorrerProcesos();
+                } 
+         
+}
+private void tiemposProcesosRR() { //Funcion/Hilo Tiempos/procesos
+    tiemposThreadRR = new Thread(() -> {
+        try {
+            boolean ejecutado = false; // Variable para controlar si ya se ejecutó el bloque de código
+            //int timer = time;
+            while (tiemposRR) { // Bucle que se ejecuta mientras tiempos sea verdadero
+                // Verificar si ejecucion.getTime() es igual a contador_global
+                if(quantum_timeRR < 1){ //Si el Quantum llega a 0
+                   cola_listosRR.offer(ejecucionRR); //Regresa el proceso a la cola 
+                   ejecucionRR = cola_listosRR.remove();
+                   quantum_timeRR = QuantumRR; //Reincia el quantum
+                   actualizarTiemposRR();
+                   //recorrerProcesos(); //Recorre de nuevo los procesos actuales  
+                   //ejecutado = true; // Marcar como ejecutado
+                   //timer = 0;
+                }
+                if (ejecucionRR.getTimeRun() >= ejecucionRR.getTime() && !ejecutado) { //Compara si el TT ha alcanzado su tiempo de ejecución
+                    ejecucionRR.setCompletionTime(contador_global); //Añade el tiempo de finalizacion
+                    int finalizacion = ejecucionRR.getCompletionTime();
+                    int llegada = ejecucionRR.getTimeArrival();
+                    ejecucionRR.setReturnTime(finalizacion-llegada); //Añade el tiempo de retorno 
+                    int retorno = ejecucionRR.getReturnTime();
+                    ejecucionRR.setWaitTime(retorno-ejecucionRR.getTimeRun());
+                    //tiempo_espera.setText(String.valueOf(ejecucion.getWaitTime()));
+                    if(ejecucionRR.getTime()!=1){ //Al estar el "if" al iniciar un proceso nuevo el "ultimo" en la tabla se elimina
+                    terminadosRR.add(ejecucionRR); // Sino, añade el nuevo terminado
+                    }
+ 
+                        
+                    ejecucionRR.setTime(1);
+                    
+                    System.out.println("Terminado noral");
+                    System.out.println(ejecucionRR.getProcessId());
+                    //ejecucion.setTime(1); // Limpiar el tiempo del proceso en ejecución.
+                    //System.out.println(timer)
+                    recorrerProcesosRR();
+                    ejecutado = true; // Marcar como ejecutado
+                    
+                    //quantum_time = Quantum; //Reinicia el quantum
+                   
+                } else if (ejecucionRR.getTime() != ejecucionRR.getTimeRun()) { 
+                    ejecutado = false; // Reiniciar el indicador si el tiempo ha cambiado
+                }
+                if(ejecucionRR.getTime() == 1){
+                    for (Process terminado : terminadosRR) {
+                            if (ejecucionRR.getProcessId() == terminado.getProcessId()) {
+                                // Eliminar el proceso en ejecución de la lista de terminados
+                                terminadosRR.remove(terminado);
+                                tiempo_cpu2.setText(String.valueOf(0));
+                                id_cpu2.setText(String.valueOf(0));
+                                ocupado_cpu2.setText(String.valueOf(0));
+                                //Tiempo llegada
+                                tiempo_llegada2.setText(String.valueOf(0));
+                                //Tiempo respuesta
+                                tiempo_respuesta2.setText(String.valueOf(0));
+                                //System.out.println(ejecucion.getTime());
+                                //recorrerProcesos();
+                                ejecutado = true;
+                                //recorrerProcesos();
+                                //actualizarGrafica();
+                                //pausar(); //Detiene el tiempo de ejecucion
+                                
+                                
+                                break;
+                      }}
+                }
+                  
+                 /*
+                if (!id_cpu.getText().equals("0")) { // Se mantiene a la espera de procesos nuevos si no hay
+                    //timer = 0;
+                    if(g.colorProceso(0,Color.GREEN)){ // Compara si el ejecutado esta bloqueado
+                        tiemposThread.interrupt();
+                    }
+                    
+                }*/
+                if ("1".equals(tiempo_cpu2.getText())) {
+                     tiemposThreadRR.interrupt(); //Interrumpir el planificador SJF
+                }
+                // Agregar alguna pausa para evitar un bucle infinito sin descanso
+                Thread.sleep(1000); // Por ejemplo, esperar 1000 milisegundos (1 segundo)
+                if(terminadoRR){ // Si se termina un proceso, el "timer" se reinicia 
+                    //timer=0;
+                    terminadoRR = false;
+                }
+                /*
+                if(ejecucion.getTime() != 1){ //En caso de que no haya un proceso en ejecucion
+                    if(g.colorProceso(0,Color.GREEN)){ // Compara si el ejecutado esta bloqueado
+                        tiemposThread.interrupt();
+                    }
+                }*/
+                //Actualizar el Panel del proceso en ejecucion
+                if(tablaBloqueadosRR.getRowCount()>0 && cola_listosRR.size() == 0){
+                        System.out.println("Bloqueado en tabla");
+                        int rowCount = tablaBloqueadosRR.getRowCount();
+                        // Recorrer cada fila de la tabla
+                        for (int i = 0; i < rowCount; i++) {
+                            // Obtener los valores de la fila actual
+                            int id = (int) tablaBloqueadosRR.getValueAt(i, 0);
+                            int tiempoProceso = (int) tablaBloqueadosRR.getValueAt(i, 1);
+
+                            // Crear un nuevo objeto Process con los valores de la fila
+                            Process newProcess = new Process(id);
+                            newProcess.setTime(tiempoProceso);
+
+                            // Agregar el proceso a la lista de procesos
+                            boolean repetido = false;
+                             for (Process cola : cola_listosRR) {
+                                if (newProcess.getProcessId() == cola.getProcessId()) {
+                                    // Eliminar el proceso en ejecución de la lista de terminados
+                                     repetido = true;
+                                     break;
+                             }
+                             if(repetido){procesosRR.add(newProcess);}
+                        }}
+                }
+                
+                id_cpu2.setText(String.valueOf(ejecucionRR.getProcessId()));
+                ocupado_cpu2.setText(String.valueOf(ejecucionRR.getTimeRun()+1));
+                tiempo_cpu2.setText(String.valueOf(ejecucionRR.getTime()));
+                tiempo_llegada2.setText(String.valueOf(ejecucionRR.getTimeArrival()));
+                tiempo_respuesta2.setText(String.valueOf(ejecucionRR.getResponseTime()));
+                tiempos_procesosRR.set(1, ejecucionRR.getTimeRun()+1); // Actualizar el tiempo del proceso en ejecución
+                actualizarGraficaRR(); // Actualiza la barra de "ejecucion" de acuerdo a su tiempo 
+                //timer++;
+                ejecucionRR.AddTimeRun(); //Suma 1 al TT (Equivalente a ejecucin.TimeRun++)
+                //contador_global++;
+                wait_timerRR = ejecucionRR.getTimeRun(); //Guarda la referencia del tiempo del proceso en ejecucion atual
+                //actual_timer = timer; //Guarda la referencia del tiempo en proceso en ejecucion
+                quantum_timeRR--; 
+                //quantum_label.setText(String.valueOf(quantum_time));
+                ejecutado = false;
+                //contador.setText(String.valueOf(contador_global));
+                
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    });
+    // Inicia el hilo
+    tiemposThreadRR.start();
+}
+private void actualizarTiemposRR() { 
+     tiempos_procesosRR.clear(); //Limpia los tiempos de los procesos anteriores 
+      tiempos_procesosRR.add(0); //Omite el primer tiempo en la grafica
+      tiempos_procesosRR.add(ejecucionRR.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+            //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+            //System.out.println("cola");
+      if(cola_listosRR.size() != 0){
+      for (Process proceso : cola_listosRR) {
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosRR.add(proceso.getTime());
+     }}
+     //System.out.println("nuevos");
+     //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+     if(procesosRR.size() != 0){
+        for (Process proceso : procesosRR){
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosRR.add(proceso.getTime());
+     }}
+  }
+private void recorrerProcesosRR() { //Recorre la cola de procesos
+    //Asigna el proceso en estado "Ejecucion" 
+     if(cola_listosRR.size() != 0){ //Si hay procesos en cola 
+         ejecucionRR = cola_listosRR.remove();
+         
+     }else{ //Si ya no hay procesos en cola
+            tiempos_procesosRR.clear();
+            actualizarGraficaRR();
+            if(procesosRR.size()!=0){
+                    //pausar(); tiemposThread.interrupt(); tiempos_procesos.clear(); actualizarGrafica();
+                        int count = 0; //Contador de procesos en el ciclo
+                            for (Process proceso : procesosRR) { //Recorre los procesos 
+                                 if(count <= 4){ //Valida que solo 5 procesos inicien en la cola de listos
+                                     cola_listosRR.offer(proceso); //Añade a la cola de listos un maximo de 5 procesos 
+                                  }
+                                 count++;
+                            }
+                       //Elimina los procesos repetidos en "nuevos" que han sido añadidos a listos 
+                        for(int j=0; j < cola_listosRR.size();j++){
+                             procesosRR.remove(0); 
+                        }
+            //Estados de procesos---------------------------------
+                //Asigna el proceso en estado "Ejecucion" 
+                ejecucionRR = cola_listosRR.remove(); 
+                //System.out.println(ejecucion.getProcessId());
+                tiempos_procesosRR.add(ejecucionRR.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+                //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+                for (Process proceso : cola_listosRR) {
+                    //System.out.println(proceso.getProcessId());
+                    tiempos_procesosRR.add(proceso.getTime());
+                }  
+                //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+                for (Process proceso : procesosRR){
+                    //System.out.println(proceso.getProcessId());
+                    tiempos_procesosRR.add(proceso.getTime());
+                }
+
+                }
+     } 
+      //Interrumpir bloqueados}
+     //System.out.println(ejecucion.getProcessId());
+      //Añade un proceso de "nuevos" a la "cola listos"
+      int llegada = ejecucionRR.getTimeArrival();
+      
+      ejecucionRR.setResponseTime(contador_global-llegada); //Tiempo de respuesta del proceso 
+      //System.out.println("LLegada menos contador ");
+      //System.out.println(ejecucion.getResponseTime());
+      //System.out.println(contador_global);
+       if(procesosRR.size() != 0){
+           Process proceso = procesosRR.remove(0);
+           proceso.setTimeArrival(contador_global); //Asigna el tiempo de llegada
+           cola_listosRR.offer(proceso);
+       }
+       //System.out.println(ejecucion.getProcessId());
+      tiempos_procesosRR.clear(); //Limpia los tiempos de los procesos anteriores 
+      tiempos_procesosRR.add(0); //Omite el primer tiempo en la grafica
+      tiempos_procesosRR.add(ejecucionRR.getTime()); //Añade el tiempo del proceso en ejecucion a la grafica 
+            //Añade los tiempos de los procesos en "Cola de listos" a la grafica 
+            //System.out.println("cola");
+      if(cola_listosRR.size() != 0){
+      for (Process proceso : cola_listosRR) {
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosRR.add(proceso.getTime());
+     }}
+     //System.out.println("nuevos");
+     //Añade los tiempos de los procesos en "Nuevos" a la grafica 
+     if(procesosRR.size() != 0){
+        for (Process proceso : procesosRR){
+            //System.out.println(proceso.getProcessId());
+            tiempos_procesosRR.add(proceso.getTime());
+     }}
+     //actualizarGrafica();
+       
+   }
+
+
+
+
+
+//FIN Modulo RR
+    
+    
     private void stopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopActionPerformed
        if (ejecucion != null) {
             pausar();
