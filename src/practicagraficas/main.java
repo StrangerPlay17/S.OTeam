@@ -111,7 +111,7 @@ public class main extends javax.swing.JFrame {
     }
 
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
     private void initComponents() {
 
         jScrollPane1 = new javax.swing.JScrollPane();
@@ -1075,16 +1075,69 @@ public class main extends javax.swing.JFrame {
 
         pack();
         setLocationRelativeTo(null);
-    }// </editor-fold>//GEN-END:initComponents
+    }// </editor-fold>                        
     
     //Funcion principal
-    private void iniciarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_iniciarActionPerformed
+    private void iniciarActionPerformed(java.awt.event.ActionEvent evt) {                                        
    // Inicio del planificador MLQ
-    SJF(); //Inicio del hilo planificador SJF
-    SRT(); //Inicio del hilo planificador SRT
-    RR(); //Inicio del hilo planificador RR
+   //Quantum
+   int quantum = 0;
+   boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
+                 do { //Pide el valor del Quantum hazta que sea valido 
+                  String quantumText = JOptionPane.showInputDialog(null, "Ingresa el Quantum de los procesos:");
+
+                  try {
+                      if (quantumText != null && !quantumText.isEmpty()) {
+                          quantum = Integer.parseInt(quantumText);
+                          if (quantum > 3) {
+                              // Quantum válido, salir del bucle
+                              QuantumSRT = quantum; //Asigna el valor de referencia del Quantum 
+                              quantum_timeSRT = QuantumSRT; //Asigna el valor del tiempo del hilo del Quantum 
+                              //quantum_label.setText(String.valueOf(Quantum));
+                              break;
+                          } else {
+                              throw new IllegalArgumentException("El Quantum debe ser mayor a 3.");
+                          }
+                      } else {
+                          throw new IllegalArgumentException("El Quantum no puede estar vacío.");
+                      }
+                  } catch (NumberFormatException ex) {
+                      JOptionPane.showMessageDialog(null, "Ingrese un Quantum válido (número entero) mayor a 3.", "Error", JOptionPane.ERROR_MESSAGE);
+                  } catch (IllegalArgumentException ex) {
+                      JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+                  }
+              } while (true);
+   int cantidad = 0;
+  
+    do { //Cantidad de procesos 
+                          if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
+                              String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
+                              if (cantidadText != null && !cantidadText.isEmpty()) {
+                                  try {
+                                      cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
+                                      StringBuilder sb = new StringBuilder("Procesos creados exitosamente.:\n");
+                                      //for (Process proceso : procesos){
+                                              sb.append("Da clic para iniciar.").append("\n");
+                                      //}
+                                      JOptionPane.showMessageDialog(null, sb.toString());
+                                      cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
+
+                                  } catch (NumberFormatException ex) {
+                                      JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
+                                  }
+                              } else {
+                                  break; // Si se cancela el diálogo, salir del bucle
+                              }
+                          } else {
+                              break; // Si ya se ingresó la cantidad de procesos, salir del bucle
+                          }
+                      } while (true);
+   
+    SJF(cantidad); //Inicio del hilo planificador SJF
+    SRT(cantidad,quantum); //Inicio del hilo planificador SRT
+    RR(cantidad,quantum); //Inicio del hilo planificador RR
     global_counter(); //Global Counter
-    }//GEN-LAST:event_iniciarActionPerformed
+    }                                       
 
     private void global_counter(){
       globalThread = new Thread(() -> {
@@ -1103,21 +1156,16 @@ public class main extends javax.swing.JFrame {
     globalThread.start();
   }
   //Inicio -> Modulo/Hilo Planificador SJF
-  private void SJF() {
+  private void SJF(int cantidad) {
     SJF = new Thread(() -> {
         try {
             //CODE
              //Creacion de procesos 
                 if (ejecucion == null) {
                   tiempos_procesos.add(0); //Omite el primer tiempo en la grafica
-                  boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
+                 
 
-                  do { //Cantidad de procesos 
-                          if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
-                              String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
-                              if (cantidadText != null && !cantidadText.isEmpty()) {
-                                  try {
-                                      int cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
+                 
 
                                       // Crear los procesos con IDs distintos y asignar tiempos
                                       for (int i = 1; i < cantidad; i++) {
@@ -1129,24 +1177,15 @@ public class main extends javax.swing.JFrame {
                                       }
 
                                       // Mostrar los procesos creados
-                                      StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
-                                      for (Process proceso : procesos){
-                                              sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
-                                      }
-                                      JOptionPane.showMessageDialog(null, sb.toString());
+                                      //StringBuilder sb = new StringBuilder("Procesos creados exitosamente.:\n");
+                                      //for (Process proceso : procesos){
+                                      //        sb.append("Da clic para iniciar.").append("\n");
+                                      //}
+                                      //JOptionPane.showMessageDialog(null, sb.toString());
 
-                                      cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
+                                     
 
-                                  } catch (NumberFormatException ex) {
-                                      JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
-                                  }
-                              } else {
-                                  break; // Si se cancela el diálogo, salir del bucle
-                              }
-                          } else {
-                              break; // Si ya se ingresó la cantidad de procesos, salir del bucle
-                          }
-                      } while (true);
+                               
                   //contadorGlobal();  //Iniciaa el contador global 
                  //Divide los procesos en sus respectivos estados "Ejecucion","Cola Listos","Nuevos"
                           //Procesos maximos en la cola de listos = 5
@@ -1577,43 +1616,19 @@ public class main extends javax.swing.JFrame {
    }//FIN Modulo SJF 
     //-----------------------------------------------------------------------
   //Modulo/Hilo Planificador SRT
-  private void SRT() {
+  private void SRT(int cantidad, int quantum) {
     SRT = new Thread(() -> {
         try {
             //Creacion de procesos 
                 if (ejecucionSRT == null) {
                   tiempos_procesosSRT.add(0); //Omite el primer tiempo en la grafica
-                  boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
-                 do { //Pide el valor del Quantum hazta que sea valido 
-                  String quantumText = JOptionPane.showInputDialog(null, "Ingresa el Quantum de los procesos:");
-
-                  try {
-                      if (quantumText != null && !quantumText.isEmpty()) {
-                          int quantum = Integer.parseInt(quantumText);
-                          if (quantum > 3) {
+                  
                               // Quantum válido, salir del bucle
                               QuantumSRT = quantum; //Asigna el valor de referencia del Quantum 
                               quantum_timeSRT = QuantumSRT; //Asigna el valor del tiempo del hilo del Quantum 
                               //quantum_label.setText(String.valueOf(Quantum));
-                              break;
-                          } else {
-                              throw new IllegalArgumentException("El Quantum debe ser mayor a 3.");
-                          }
-                      } else {
-                          throw new IllegalArgumentException("El Quantum no puede estar vacío.");
-                      }
-                  } catch (NumberFormatException ex) {
-                      JOptionPane.showMessageDialog(null, "Ingrese un Quantum válido (número entero) mayor a 3.", "Error", JOptionPane.ERROR_MESSAGE);
-                  } catch (IllegalArgumentException ex) {
-                      JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                  }
-              } while (true);
-                  do { //Cantidad de procesos 
-                          if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
-                              String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
-                              if (cantidadText != null && !cantidadText.isEmpty()) {
-                                  try {
-                                      int cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
+                            
+                 
 
                                       // Crear los procesos con IDs distintos y asignar tiempos
                                       for (int i = 1; i < cantidad; i++) {
@@ -1625,24 +1640,15 @@ public class main extends javax.swing.JFrame {
                                       }
 
                                       // Mostrar los procesos creados
-                                      StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
-                                      for (Process proceso : procesosSRT){
-                                              sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
-                                      }
-                                      JOptionPane.showMessageDialog(null, sb.toString());
+                                      //StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
+                                      //for (Process proceso : procesosSRT){
+                                      //        sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
+                                      //}
+                                      //JOptionPane.showMessageDialog(null, sb.toString());
 
-                                      cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
+                                      //cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
 
-                                  } catch (NumberFormatException ex) {
-                                      JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
-                                  }
-                              } else {
-                                  break; // Si se cancela el diálogo, salir del bucle
-                              }
-                          } else {
-                              break; // Si ya se ingresó la cantidad de procesos, salir del bucle
-                          }
-                      } while (true);
+                                  
                   //contadorGlobal();  //Iniciaa el contador global 
                  //Divide los procesos en sus respectivos estados "Ejecucion","Cola Listos","Nuevos"
                           //Procesos maximos en la cola de listos = 5
@@ -1746,11 +1752,11 @@ public class main extends javax.swing.JFrame {
                 for (int i = 0; i < tiempos_procesosSRT.size(); i++) {
                     // Editar el color de un proceso en la grafica
                     if (i == 0) { // Color del proceso en ejecución
-                        g2.editarColorProceso(i, Color.red);
+                        g2.editarColorProceso(i, Color.green);
                     } else if (i > 0 && i < 5) { // Color de procesos en cola
-                        g2.editarColorProceso(i, Color.CYAN);
+                        g2.editarColorProceso(i, Color.yellow);
                     } else if (i >= 5) { // Color de procesos nuevos
-                        g2.editarColorProceso(i, new Color(139, 69, 19));
+                        g2.editarColorProceso(i, new Color(0, 0, 0));
                     }
                     if(color_bloqueadoSRT > 0){
                        g2.editarColorProceso(4, Color.green);
@@ -2051,43 +2057,18 @@ private void recorrerProcesosSRT() { //Recorre la cola de procesos
   
   //-------------------------------------------------------------------------
   //Modulo/Hilo Planificador RR
-  private void RR() {
+  private void RR(int cantidad, int quantum) {
     RR = new Thread(() -> {
         try {
             if (ejecucionRR == null) {
                     tiempos_procesosRR.add(0); //Omite el primer tiempo en la grafica
-                    boolean cantidadIngresada = false; // Bandera para verificar si ya se ingresó la cantidad de procesos
-                   do { //Pide el valor del Quantum hazta que sea valido 
-                    String quantumText = JOptionPane.showInputDialog(null, "Ingresa el Quantum de los procesos:");
-
-                    try {
-                        if (quantumText != null && !quantumText.isEmpty()) {
-                            int quantum = Integer.parseInt(quantumText);
-                            if (quantum > 3) {
+                    
                                 // Quantum válido, salir del bucle
                                 QuantumRR = quantum; //Asigna el valor de referencia del Quantum 
                                 quantum_timeRR = QuantumRR; //Asigna el valor del tiempo del hilo del Quantum 
                                 //quantum_label.setText(String.valueOf(QuantumRR));
-                                break;
-                            } else {
-                                throw new IllegalArgumentException("El Quantum debe ser mayor a 3.");
-                            }
-                        } else {
-                            throw new IllegalArgumentException("El Quantum no puede estar vacío.");
-                        }
-                    } catch (NumberFormatException ex) {
-                        JOptionPane.showMessageDialog(null, "Ingrese un Quantum válido (número entero) mayor a 3.", "Error", JOptionPane.ERROR_MESSAGE);
-                    } catch (IllegalArgumentException ex) {
-                        JOptionPane.showMessageDialog(null, ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-                    }
-                } while (true);
-                    do { //Cantidad de procesos 
-                            if (!cantidadIngresada) { // Solicitar la cantidad de procesos al usuario
-                                String cantidadText = JOptionPane.showInputDialog(null, "Ingrese la cantidad de procesos:");
-                                if (cantidadText != null && !cantidadText.isEmpty()) {
-                                    try {
-                                        int cantidad = Integer.parseInt(cantidadText) + 1; //Cantidad de procesos + 1 al graficarse
-
+                                
+                  
                                         // Crear los procesos con IDs distintos y asignar tiempos
                                         for (int i = 1; i < cantidad; i++) {
                                             Process proceso = new Process(ID);
@@ -2096,24 +2077,13 @@ private void recorrerProcesosSRT() { //Recorre la cola de procesos
                                         }
 
                                         // Mostrar los procesos creados
-                                        StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
-                                        for (Process proceso : procesosRR){
-                                                sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
-                                        }
-                                        JOptionPane.showMessageDialog(null, sb.toString());
+                                        //StringBuilder sb = new StringBuilder("Procesos creados y sus tiempos:\n");
+                                        //for (Process proceso : procesosRR){
+                                        //        sb.append("ID: ").append(proceso.getProcessId()).append(" | Time: ").append(proceso.getTime()).append("\n");
+                                        //}
+                                        //JOptionPane.showMessageDialog(null, sb.toString());
 
-                                        cantidadIngresada = true; // Marcar que la cantidad fue ingresada correctamente
-
-                                    } catch (NumberFormatException ex) {
-                                        JOptionPane.showMessageDialog(null, "Ingrese un número válido para la cantidad de procesos.", "Error", JOptionPane.ERROR_MESSAGE);
-                                    }
-                                } else {
-                                    break; // Si se cancela el diálogo, salir del bucle
-                                }
-                            } else {
-                                break; // Si ya se ingresó la cantidad de procesos, salir del bucle
-                            }
-                        } while (true);
+                                       
                     //contadorGlobal();  //Iniciaa el contador global 
                    //Divide los procesos en sus respectivos estados "Ejecucion","Cola Listos","Nuevos"
                             //Procesos maximos en la cola de listos = 5
@@ -2216,11 +2186,11 @@ private void recorrerProcesosSRT() { //Recorre la cola de procesos
                 for (int i = 0; i < tiempos_procesosRR.size(); i++) {
                     // Editar el color de un proceso en la grafica
                     if (i == 0) { // Color del proceso en ejecución
-                        g3.editarColorProceso(i, Color.red);
+                        g3.editarColorProceso(i, Color.blue);
                     } else if (i > 0 && i < 5) { // Color de procesos en cola
-                        g3.editarColorProceso(i, Color.CYAN);
+                        g3.editarColorProceso(i, Color.green);
                     } else if (i >= 5) { // Color de procesos nuevos
-                        g3.editarColorProceso(i, new Color(139, 69, 19));
+                        g3.editarColorProceso(i, Color.black);
                     }
                     if(color_bloqueadoRR > 0){
                        g3.editarColorProceso(4, Color.green);
@@ -2498,16 +2468,16 @@ private void recorrerProcesosRR() { //Recorre la cola de procesos
 //FIN Modulo RR
     
     
-    private void stopActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_stopActionPerformed
+    private void stopActionPerformed(java.awt.event.ActionEvent evt) {                                     
        if (ejecucion != null) {
             pausar();
        }else{
          // Mostrar un JOptionPane informando al usuario que no hay procesos en ejecución
         JOptionPane.showMessageDialog(this, "No hay procesos en ejecución por detener.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }//GEN-LAST:event_stopActionPerformed
+    }                                    
 
-    private void ejecutarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_ejecutarActionPerformed
+    private void ejecutarActionPerformed(java.awt.event.ActionEvent evt) {                                         
         if (ejecucion != null) {
              if(!ejecutando){
                 continuar(); 
@@ -2519,7 +2489,7 @@ private void recorrerProcesosRR() { //Recorre la cola de procesos
          // Mostrar un JOptionPane informando al usuario que no hay procesos en ejecución
         JOptionPane.showMessageDialog(this, "No hay procesos en ejecución por iniciar.", "Error", JOptionPane.ERROR_MESSAGE);
         }
-    }//GEN-LAST:event_ejecutarActionPerformed
+    }                                        
 
     
     public static void main(String args[]) {
@@ -2553,7 +2523,7 @@ private void recorrerProcesosRR() { //Recorre la cola de procesos
         });
     }
 
-    // Variables declaration - do not modify//GEN-BEGIN:variables
+    // Variables declaration - do not modify                     
     private javax.swing.JLabel contador;
     private javax.swing.JList<String> cpu;
     private javax.swing.JButton ejecutar;
@@ -2643,5 +2613,5 @@ private void recorrerProcesosRR() { //Recorre la cola de procesos
     private javax.swing.JLabel tiempo_respuesta;
     private javax.swing.JLabel tiempo_respuesta1;
     private javax.swing.JLabel tiempo_respuesta2;
-    // End of variables declaration//GEN-END:variables
+    // End of variables declaration                   
 }
