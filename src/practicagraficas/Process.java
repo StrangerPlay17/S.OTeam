@@ -3,7 +3,7 @@ package practicagraficas;
 
 import java.util.Random;
 
-public class Process {
+public class Process implements Comparable<Process>{
     private int process_id;
     private int time;
     private int time_arrival;
@@ -81,6 +81,10 @@ public class Process {
     }
     private int time_run;
 
+    @Override
+    public int compareTo(Process d) {	
+            return this.time - d.getTime();
+    }
     public Process(int id) {
         this.process_id = id;
         this.time = generateRandomTime(6, 12);
@@ -102,4 +106,3 @@ public class Process {
     }
     
 }
-
