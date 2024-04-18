@@ -23,7 +23,7 @@ public class Grafico {
 
         // Se crea un nuevo gráfico de barras
         chart = ChartFactory.createBarChart(
-                "Planificador Round Robin",
+                "Planificador MLQ",
                 "ID Procesos",
                 "Tiempo",
                 dataset
